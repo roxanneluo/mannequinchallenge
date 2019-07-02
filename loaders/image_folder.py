@@ -261,7 +261,11 @@ class DAVISImageFolder(data.Dataset):
     def load_imgs(self, img_path):
         img = imread(img_path)
         img = np.float32(img)/255.0
-        img = transform.resize(img, (self.resized_height, self.resized_width))
+        H, W = img.shape[:2]
+        dividend = 64
+        round = lambda x: int(x/dividend+1)*dividend
+        resized_height, resized_width = round(H//4), round(W//4)
+        img = transform.resize(img, (resized_height, resized_width))
 
         return img
 
