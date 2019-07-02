@@ -14,8 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-mkdir -p test_data
-cd test_data
+mkdir -p test_data/data
+cd test_data/data
 curl -L https://graphics.ethz.ch/Downloads/Data/Davis/DAVIS-data.zip -o DAVIS-data.zip
 unzip DAVIS-data.zip
 rm DAVIS-data.zip
