@@ -610,7 +610,9 @@ class Pix2PixModel(base_model.BaseModel):
 
             hdf5_file_write.close()
 
-    def run_and_save_DAVIS(self, input_, targets, save_path):
+    def run_and_save_DAVIS(self, input_, targets, vis_dir, raw_dir):
+        import image_io
+
         assert (self.num_input == 3)
         input_imgs = autograd.Variable(input_.cuda(), requires_grad=False)
 
@@ -620,31 +622,42 @@ class Pix2PixModel(base_model.BaseModel):
         pred_log_d = prediction_d.squeeze(1)
         pred_d = torch.exp(pred_log_d)
 
-        if not os.path.exists(save_path):
-            os.makedirs(save_path)
+        if not os.path.exists(vis_dir):
+            os.makedirs(vis_dir)
+        if not os.path.exists(raw_dir):
+            os.makedirs(raw_dir)
+
+        def make_fn(im_path, out_dir, ext):
+            import os
+            names = im_path.split('/')[-2:]
+            out_fn = os.path.join(out_dir, names[0],
+                    os.path.splitext(names[1])[0] + ext)
+            os.makedirs(os.path.dirname(out_fn), exist_ok=True)
+            return out_fn
 
         for i in range(0, len(targets['img_1_path'])):
-
-            youtube_dir = save_path + targets['img_1_path'][i].split('/')[-2]
-
-            if not os.path.exists(youtube_dir):
-                os.makedirs(youtube_dir)
-
             saved_img = np.transpose(
                 input_imgs[i, :, :, :].cpu().numpy(), (1, 2, 0))
 
             pred_d_ref = pred_d.data[i, :, :].cpu().numpy()
 
-            output_path = youtube_dir + '/' + \
-                targets['img_1_path'][i].split('/')[-1]
-            print(output_path)
+            im_path = targets['img_1_path'][i]
+            vis_output_path = make_fn(im_path, vis_dir, '.png')
+            raw_output_path = make_fn(im_path, raw_dir, '.raw')
+            print(vis_output_path, raw_output_path)
+            #d_resized = cv2.resize(pred_d_ref, None, fx=0.5, fy=0.5)
+            d_resized = pred_d_ref
+            image_io.save_raw_float32_image(raw_output_path, d_resized)
+
             disparity = 1. / pred_d_ref
-            disparity = disparity / np.max(disparity)
+            print(np.max(disparity))
+            maximum = 1 #np.max(disparity)
+            disparity = disparity / maximum
+            disparity = np.minimum(disparity, 1.0)
             disparity = np.tile(np.expand_dims(disparity, axis=-1), (1, 1, 3))
             saved_imgs = np.concatenate((saved_img, disparity), axis=1)
             saved_imgs = (saved_imgs*255).astype(np.uint8)
-
-            imsave(output_path, saved_imgs)
+            imsave(vis_output_path, saved_imgs)
 
     def switch_to_train(self):
         self.netG.train()
