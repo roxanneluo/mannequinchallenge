@@ -79,6 +79,36 @@ def load_image_angle(file_name, max_size=None, min_size=None, angle=0):
     return [[]], 0.0
 
 
+# Load image from binary file in the same way as read in C++ with
+# #include "compphotolib/core/CvUtil.h"
+# freadimg(fileName, image);
+def load_raw_float32_image(file_name):
+    with open(file_name, "rb") as f:
+        CV_CN_MAX = 512
+        CV_CN_SHIFT = 3
+        CV_32F = 5
+        I_BYTES = 4
+        Q_BYTES = 8
+
+        h = struct.unpack("i", f.read(I_BYTES))[0]
+        w = struct.unpack("i", f.read(I_BYTES))[0]
+
+        cv_type = struct.unpack("i", f.read(I_BYTES))[0]
+        pixel_size = struct.unpack("Q", f.read(Q_BYTES))[0]
+        d = ((cv_type - CV_32F) >> CV_CN_SHIFT) + 1
+        assert(d >= 1)
+        d_from_pixel_size = pixel_size // 4
+        if d != d_from_pixel_size:
+            raise Exception("Incompatible pixel_size(%d) and cv_type(%d)"
+                % (pixel_size, cv_type))
+        if d > CV_CN_MAX:
+            raise Exception("Cannot save image with more than 512 channels")
+
+        data = np.frombuffer(f.read(), dtype=np.float32)
+        result = data.reshape(h, w) if d == 1 else data.reshape(h, w, d)
+        return result
+
+
 # Save image to binary file, so that it can be read in C++ with
 # #include "compphotolib/core/CvUtil.h"
 # freadimg(fileName, image);
