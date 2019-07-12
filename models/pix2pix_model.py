@@ -65,6 +65,9 @@ class Pix2PixModel(base_model.BaseModel):
     def name(self):
         return 'Pix2PixModel'
 
+    def vis_scale(self):
+        return 1.1
+
     def __init__(self, opt, _isTrain=False):
         self.initialize(opt)
 
@@ -610,7 +613,7 @@ class Pix2PixModel(base_model.BaseModel):
 
             hdf5_file_write.close()
 
-    def run_and_save_DAVIS(self, input_, targets, vis_dir, raw_dir):
+    def run_and_save_DAVIS(self, input_, targets, vis_dir, raw_dir, d_scale=None):
         import image_io
 
         assert (self.num_input == 3)
@@ -645,19 +648,20 @@ class Pix2PixModel(base_model.BaseModel):
             vis_output_path = make_fn(im_path, vis_dir, '.png')
             raw_output_path = make_fn(im_path, raw_dir, '.raw')
             print(vis_output_path, raw_output_path)
-            #d_resized = cv2.resize(pred_d_ref, None, fx=0.5, fy=0.5)
-            d_resized = pred_d_ref
-            image_io.save_raw_float32_image(raw_output_path, d_resized)
-
             disparity = 1. / pred_d_ref
-            print(np.max(disparity))
-            maximum = 1 #np.max(disparity)
-            disparity = disparity / maximum
+            image_io.save_raw_float32_image(raw_output_path, disparity)
+
+            maximum = np.amax(disparity)
+            d_scale = maximum * self.vis_scale() if d_scale is None else d_scale
+            print(maximum, d_scale)
+            disparity = disparity / d_scale
             disparity = np.minimum(disparity, 1.0)
             disparity = np.tile(np.expand_dims(disparity, axis=-1), (1, 1, 3))
             saved_imgs = np.concatenate((saved_img, disparity), axis=1)
             saved_imgs = (saved_imgs*255).astype(np.uint8)
             imsave(vis_output_path, saved_imgs)
+
+            return d_scale
 
     def switch_to_train(self):
         self.netG.train()

@@ -47,8 +47,11 @@ vis_dir = 'results/viz_predictions/'
 raw_dir = 'results/raw/'
 print('save_paths', vis_dir, raw_dir)
 
+# To get a uniform scale for visualizing depth. For the first frame scale by vis_scale * maximum.
+# the rest use the scale computed from the first frame
+d_scale = None
 for i, data in enumerate(video_dataset):
     print(i)
     stacked_img = data[0]
     targets = data[1]
-    model.run_and_save_DAVIS(stacked_img, targets, vis_dir, raw_dir)
+    d_scale = model.run_and_save_DAVIS(stacked_img, targets, vis_dir, raw_dir, d_scale=d_scale)
