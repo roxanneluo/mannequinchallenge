@@ -259,12 +259,19 @@ class DAVISImageFolder(data.Dataset):
         self.use_pp = True
 
     def load_imgs(self, img_path):
+        if img_path.endswith('.raw'):
+            import image_io
+            img = image_io.load_raw_float32_image(img_path)
+            if img.ndim == 3:
+                img = img[..., ::-1]
+            return img
+
         img = imread(img_path)
-        img = np.float32(img)/255.0
+        img = np.float32(img) / 255.0
         H, W = img.shape[:2]
         dividend = 64
-        round = lambda x: int(x/dividend+1)*dividend
-        resized_height, resized_width = round(H//4), round(W//4)
+        round = lambda x: int(x / dividend + 0.5) * dividend
+        resized_height, resized_width = round(H / 4), round(W / 4)
         img = transform.resize(img, (resized_height, resized_width))
 
         return img
