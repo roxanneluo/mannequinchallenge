@@ -17,13 +17,13 @@ import torch
 import torch.nn as nn
 import torch.autograd as autograd
 import os
-from models import base_model
-from models import networks
+from . import base_model
+from . import networks
 import sys
 import h5py
 import os.path
 from skimage.io import imsave
-from models import hourglass
+from . import hourglass
 
 import torchvision.utils as vutils
 
@@ -105,8 +105,8 @@ class Pix2PixModel(base_model.BaseModel):
 
                 new_model.load_state_dict(model_parameters)
 
-            new_model = torch.nn.parallel.DataParallel(
-                new_model.cuda(), device_ids=range(torch.cuda.device_count()))
+            new_model = torch.nn.DataParallel(new_model)
+            new_model.to("cuda")
 
             self.netG = new_model
 
